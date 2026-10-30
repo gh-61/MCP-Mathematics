@@ -4,7 +4,6 @@ import datetime
 import math
 import operator
 import re
-import resource
 import statistics
 import threading
 import time
@@ -16,6 +15,11 @@ from typing import Annotated, Any
 
 from fastmcp import Context, FastMCP
 from mcp.types import ToolAnnotations
+
+try:
+    import resource
+except ImportError:  # Windows has no `resource` module
+    resource = None
 
 
 @dataclass
@@ -371,6 +375,9 @@ def mathematical_computation_timeout(seconds: float):
 
 @contextmanager
 def mathematical_computation_memory_limit(mb: int):
+    if resource is None:  # no RLIMIT_AS on Windows; the 15 s timeout still applies
+        yield
+        return
     try:
         soft, hard = resource.getrlimit(resource.RLIMIT_AS)
         new_limit = mb * 1024 * 1024
